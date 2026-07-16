@@ -1,0 +1,6 @@
+{
+  "name": "LifeOS",
+  "description": "The AI-powered operating system for high-performance living, integrating your focus, health, goals, planner, and habits.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
