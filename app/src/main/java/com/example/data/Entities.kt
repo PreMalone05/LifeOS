@@ -6,16 +6,40 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "user_profile")
 data class UserProfileEntity(
     @PrimaryKey val id: Int = 1,
-    val name: String = "Alex",
-    val level: Int = 12,
-    val xp: Int = 2450,
-    val maxXp: Int = 3000,
-    val focusPoints: Float = 48.2f,
-    val streak: Int = 14,
-    val uptime: Int = 94,
-    val rankPercent: Int = 2,
+    val userId: String = "local_user",
+    val name: String = "",
+    val level: Int = 1,
+    val xp: Int = 0,
+    val maxXp: Int = 1000,
+    val focusPoints: Float = 0f,
+    val streak: Int = 0,
+    val uptime: Int = 100,
+    val rankPercent: Int = 100,
     val coachPersonality: String = "The Stoic Mentor",
-    val currentVibe: String = "Deep Work & Clarity"
+    val currentVibe: String = "Focused & Intentional",
+    val email: String? = null,
+    val photoUrl: String? = null,
+    val isGoogleLinked: Boolean = false,
+    val isOnboarded: Boolean = false,
+    val selectedInterests: String = "", // Comma-separated or JSON list
+    val planningStyle: String = "Time Blocking + Tasks",
+    val focusSummary: String = "",
+    val priorityStatement: String = "",
+    val availabilityWindow: String = "",
+    val reminderIntensity: String = "Balanced",
+    val workStartTime: String = "09:00",
+    val workEndTime: String = "17:00",
+    val wfhDays: String = "Mon,Wed,Fri",
+    val workDays: String = "Mon,Tue,Wed,Thu,Fri",
+    val weekendDays: String = "Sat,Sun",
+    val isVacationMode: Boolean = false,
+    val vacationStartDate: String? = null,
+    val vacationEndDate: String? = null,
+    val vacationNotes: String = "",
+    val todayBannerUrl: String? = null,
+    val plannerBannerUrl: String? = null,
+    val habitsBannerUrl: String? = null,
+    val insightsBannerUrl: String? = null
 )
 
 @Entity(tableName = "tasks")
@@ -29,7 +53,24 @@ data class TaskEntity(
     val isRollover: Boolean = false,
     val date: String = "2024-10-24", // YYYY-MM-DD
     val durationHours: Int = 1,
-    val location: String? = null
+    val location: String? = null,
+    val priority: String = "IMPORTANT", // "CRITICAL", "IMPORTANT", "FLEXIBLE", "OPTIONAL"
+    val energyLevel: String = "MEDIUM", // "HIGH", "MEDIUM", "LOW"
+    val isAiSuggested: Boolean = false,
+    val rescheduleCount: Int = 0,
+    val status: String = "PENDING" // "PENDING", "COMPLETED", "SKIPPED", "DEFERRED"
+)
+
+@Entity(tableName = "daily_reviews")
+data class DailyReviewEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val date: String, // YYYY-MM-DD
+    val scoreRating: String = "GREAT", // "DOMINANT", "BALANCED", "RECOVERY", "TOUGH"
+    val summaryNotes: String = "",
+    val completedCount: Int = 0,
+    val deferredCount: Int = 0,
+    val focusPointsEarned: Float = 0f,
+    val timestamp: Long = System.currentTimeMillis()
 )
 
 @Entity(tableName = "habits")
@@ -41,7 +82,7 @@ data class HabitEntity(
     val unit: String, // "L", "min", "Done"
     val isCompleted: Boolean = false,
     val iconName: String, // "water_drop", "menu_book", "self_improvement", "fitness_center"
-    val streak: Int = 12
+    val streak: Int = 0
 )
 
 @Entity(tableName = "goals")
@@ -73,3 +114,106 @@ data class SubTaskEntity(
     val title: String,
     val isCompleted: Boolean = false
 )
+
+@Entity(tableName = "chat_messages")
+data class ChatMessageEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val role: String, // "user" or "model"
+    val text: String,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "recurring_alarms")
+data class RecurringAlarmEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val title: String,
+    val message: String,
+    val hour: Int, // 0..23
+    val minute: Int, // 0..59
+    val repeatType: String = "DAILY", // "DAILY", "WEEKDAYS", "WEEKENDS"
+    val isEnabled: Boolean = true,
+    val soundEnabled: Boolean = true
+)
+
+@Entity(tableName = "behavioral_events")
+data class BehavioralEventEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val eventType: String,
+    val entityId: Int? = null,
+    val category: String? = null,
+    val priority: String? = null,
+    val energyLevel: String? = null,
+    val timeOfDayHour: Int = 0,
+    val dayOfWeek: Int = 1,
+    val metadataJson: String? = null,
+    val timestamp: Long = System.currentTimeMillis(),
+    val date: String = ""
+)
+
+@Entity(tableName = "task_performance_records")
+data class TaskPerformanceRecordEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val taskId: Int,
+    val category: String,
+    val estimatedMinutes: Int,
+    val actualMinutes: Int,
+    val estimationErrorMinutes: Int,
+    val priority: String,
+    val energyLevel: String,
+    val timeSlotHour: Int,
+    val dayOfWeek: Int,
+    val isAiScheduled: Boolean = false,
+    val rolloverCount: Int = 0,
+    val completedTimestamp: Long = System.currentTimeMillis(),
+    val date: String = ""
+)
+
+@Entity(tableName = "recommendation_feedback")
+data class RecommendationFeedbackEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val recommendationType: String,
+    val recommendationText: String,
+    val feedback: String,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "learned_patterns")
+data class LearnedPatternEntity(
+    @PrimaryKey val patternKey: String,
+    val patternValue: String,
+    val confidenceLevel: String = "INSUFFICIENT_DATA",
+    val observationCount: Int = 0,
+    val lastUpdated: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "predictive_recommendations")
+data class PredictiveRecommendationEntity(
+    @PrimaryKey val id: String,
+    val type: String, // from RecommendationType enum
+    val priority: String = "IMPORTANT", // "CRITICAL", "IMPORTANT", "FLEXIBLE", "OPTIONAL"
+    val confidence: String = "MODERATE_CONFIDENCE",
+    val title: String,
+    val explanation: String,
+    val suggestedAction: String,
+    val actionType: String? = null,
+    val relatedTaskId: Int? = null,
+    val createdTimestamp: Long = System.currentTimeMillis(),
+    val expirationTimestamp: Long = System.currentTimeMillis() + (24 * 60 * 60 * 1000),
+    val state: String = "CREATED" // "CREATED", "SHOWN", "ACCEPTED", "DISMISSED", "IGNORED", "EXPIRED"
+)
+
+@Entity(
+    tableName = "predictive_notification_history",
+    indices = [
+        androidx.room.Index(value = ["recommendationType"]),
+        androidx.room.Index(value = ["deduplicationHash"]),
+        androidx.room.Index(value = ["dispatchedTimestamp"])
+    ]
+)
+data class PredictiveNotificationHistoryEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0L,
+    val recommendationType: String,
+    val deduplicationHash: String,
+    val dispatchedTimestamp: Long = System.currentTimeMillis()
+)
+

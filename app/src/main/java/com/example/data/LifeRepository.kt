@@ -11,6 +11,94 @@ class LifeRepository(private val lifeDao: LifeDao) {
     val allTasks: Flow<List<TaskEntity>> = lifeDao.getAllTasks()
     val allHabits: Flow<List<HabitEntity>> = lifeDao.getAllHabits()
     val allGoals: Flow<List<GoalEntity>> = lifeDao.getAllGoals()
+    val allChatMessages: Flow<List<ChatMessageEntity>> = lifeDao.getAllChatMessages()
+    val allRecurringAlarms: Flow<List<RecurringAlarmEntity>> = lifeDao.getAllRecurringAlarms()
+    val allDailyReviews: Flow<List<DailyReviewEntity>> = lifeDao.getAllDailyReviews()
+    val allBehavioralEvents: Flow<List<BehavioralEventEntity>> = lifeDao.getAllBehavioralEvents()
+    val allTaskPerformanceRecords: Flow<List<TaskPerformanceRecordEntity>> = lifeDao.getAllTaskPerformanceRecords()
+    val allRecommendationFeedback: Flow<List<RecommendationFeedbackEntity>> = lifeDao.getAllRecommendationFeedback()
+    val allLearnedPatterns: Flow<List<LearnedPatternEntity>> = lifeDao.getAllLearnedPatterns()
+    val activePredictiveRecommendations: Flow<List<PredictiveRecommendationEntity>> = lifeDao.getActivePredictiveRecommendations()
+
+    suspend fun insertPredictiveRecommendation(recommendation: PredictiveRecommendationEntity) = withContext(Dispatchers.IO) {
+        lifeDao.insertPredictiveRecommendation(recommendation)
+    }
+
+    suspend fun insertPredictiveRecommendations(recommendations: List<PredictiveRecommendationEntity>) = withContext(Dispatchers.IO) {
+        lifeDao.insertPredictiveRecommendations(recommendations)
+    }
+
+    suspend fun updateRecommendationState(id: String, newState: String) = withContext(Dispatchers.IO) {
+        lifeDao.updateRecommendationState(id, newState)
+    }
+
+    suspend fun clearPredictiveRecommendations() = withContext(Dispatchers.IO) {
+        lifeDao.clearPredictiveRecommendations()
+    }
+
+    suspend fun insertBehavioralEvent(event: BehavioralEventEntity): Long = withContext(Dispatchers.IO) {
+        lifeDao.insertBehavioralEvent(event)
+    }
+
+    suspend fun insertBehavioralEvents(events: List<BehavioralEventEntity>) = withContext(Dispatchers.IO) {
+        lifeDao.insertBehavioralEvents(events)
+    }
+
+    suspend fun insertTaskPerformanceRecord(record: TaskPerformanceRecordEntity): Long = withContext(Dispatchers.IO) {
+        lifeDao.insertTaskPerformanceRecord(record)
+    }
+
+    suspend fun insertTaskPerformanceRecords(records: List<TaskPerformanceRecordEntity>) = withContext(Dispatchers.IO) {
+        lifeDao.insertTaskPerformanceRecords(records)
+    }
+
+    suspend fun insertRecommendationFeedback(feedback: RecommendationFeedbackEntity): Long = withContext(Dispatchers.IO) {
+        lifeDao.insertRecommendationFeedback(feedback)
+    }
+
+    suspend fun insertLearnedPattern(pattern: LearnedPatternEntity) = withContext(Dispatchers.IO) {
+        lifeDao.insertLearnedPattern(pattern)
+    }
+
+    suspend fun insertLearnedPatterns(patterns: List<LearnedPatternEntity>) = withContext(Dispatchers.IO) {
+        lifeDao.insertLearnedPatterns(patterns)
+    }
+
+    suspend fun getLearnedPatternByKey(key: String): LearnedPatternEntity? = withContext(Dispatchers.IO) {
+        lifeDao.getLearnedPatternByKey(key)
+    }
+
+    suspend fun insertDailyReview(review: DailyReviewEntity): Long = withContext(Dispatchers.IO) {
+        lifeDao.insertDailyReview(review)
+    }
+
+    suspend fun getDailyReviewForDate(date: String): DailyReviewEntity? = withContext(Dispatchers.IO) {
+        lifeDao.getDailyReviewForDate(date)
+    }
+
+    suspend fun updateTasks(tasks: List<TaskEntity>) = withContext(Dispatchers.IO) {
+        lifeDao.updateTasks(tasks)
+    }
+
+    suspend fun insertRecurringAlarm(alarm: RecurringAlarmEntity): Long = withContext(Dispatchers.IO) {
+        lifeDao.insertRecurringAlarm(alarm)
+    }
+
+    suspend fun updateRecurringAlarm(alarm: RecurringAlarmEntity) = withContext(Dispatchers.IO) {
+        lifeDao.updateRecurringAlarm(alarm)
+    }
+
+    suspend fun deleteRecurringAlarm(alarm: RecurringAlarmEntity) = withContext(Dispatchers.IO) {
+        lifeDao.deleteRecurringAlarm(alarm)
+    }
+
+    suspend fun insertChatMessage(message: ChatMessageEntity): Long = withContext(Dispatchers.IO) {
+        lifeDao.insertChatMessage(message)
+    }
+
+    suspend fun clearChatMessages() = withContext(Dispatchers.IO) {
+        lifeDao.clearChatMessages()
+    }
 
     fun getTasksByDate(date: String): Flow<List<TaskEntity>> = lifeDao.getTasksByDate(date)
     fun getMilestonesForGoal(goalId: Int): Flow<List<MilestoneEntity>> = lifeDao.getMilestonesForGoal(goalId)
@@ -76,95 +164,48 @@ class LifeRepository(private val lifeDao: LifeDao) {
         lifeDao.deleteSubTask(subTask)
     }
 
-    suspend fun resetAllData() = withContext(Dispatchers.IO) {
-        lifeDao.clearAllTasks()
-        lifeDao.clearAllGoals()
-        // Re-populate with defaults
-        populateDefaultData()
+    suspend fun deleteHabit(habit: HabitEntity) = withContext(Dispatchers.IO) {
+        lifeDao.deleteHabit(habit)
     }
 
-    suspend fun populateDefaultData() = withContext(Dispatchers.IO) {
-        // 1. Profile Default
+    suspend fun deleteGoal(goal: GoalEntity) = withContext(Dispatchers.IO) {
+        lifeDao.deleteGoal(goal)
+    }
+
+    suspend fun clearAllSystemData() = withContext(Dispatchers.IO) {
+        lifeDao.clearAllTasks()
+        lifeDao.clearAllGoals()
+        lifeDao.clearAllHabits()
+        lifeDao.clearAllMilestones()
+        lifeDao.clearAllSubTasks()
+        lifeDao.clearChatMessages()
+        lifeDao.clearBehavioralEvents()
+        lifeDao.clearTaskPerformanceRecords()
+        lifeDao.clearRecommendationFeedback()
+        lifeDao.clearPredictiveRecommendations()
+        lifeDao.clearNotificationHistory()
         val profile = UserProfileEntity(
             id = 1,
-            name = "Julian Thorne",
-            level = 14,
-            xp = 12450,
-            maxXp = 15000,
-            focusPoints = 48200f,
-            streak = 24,
-            uptime = 94,
-            rankPercent = 2,
+            userId = "local_user",
+            name = "",
+            level = 1,
+            xp = 0,
+            maxXp = 1000,
+            focusPoints = 0f,
+            streak = 0,
+            uptime = 100,
+            rankPercent = 100,
             coachPersonality = "The Stoic Mentor",
-            currentVibe = "Deep Work & Clarity"
+            currentVibe = "Focused & Intentional",
+            isGoogleLinked = false,
+            isOnboarded = false,
+            selectedInterests = "",
+            planningStyle = "Time Blocking + Tasks",
+            focusSummary = "",
+            priorityStatement = "",
+            availabilityWindow = "",
+            reminderIntensity = "Balanced"
         )
         lifeDao.insertUserProfile(profile)
-
-        // 2. Habits Defaults
-        val habits = listOf(
-            HabitEntity(name = "Drink Water", currentValue = 2.1f, targetValue = 3.0f, unit = "L", isCompleted = false, iconName = "water_drop", streak = 12),
-            HabitEntity(name = "Read", currentValue = 0f, targetValue = 30f, unit = "min", isCompleted = false, iconName = "menu_book", streak = 8),
-            HabitEntity(name = "Meditate", currentValue = 10f, targetValue = 10f, unit = "Done", isCompleted = true, iconName = "self_improvement", streak = 15),
-            HabitEntity(name = "Workout", currentValue = 25f, targetValue = 45f, unit = "min", isCompleted = false, iconName = "fitness_center", streak = 24)
-        )
-        for (h in habits) {
-            lifeDao.insertHabit(h)
-        }
-
-        // 3. Tasks Defaults
-        val tasks = listOf(
-            TaskEntity(title = "Project Alpha Strategy", category = "WORK", timeSlot = "09:00 - 10:30 AM", description = "Q4 planning session with the engineering lead. High cognitive demand.", isCompleted = false, isRollover = false, date = "2024-10-24", durationHours = 2, location = "Conference Room A"),
-            TaskEntity(title = "Deep Health Session", category = "HEALTH", timeSlot = "11:00 - 12:00 PM", description = "Active conditioning and strength circuit training.", isCompleted = false, isRollover = false, date = "2024-10-24", durationHours = 1, location = "Gym Floor"),
-            TaskEntity(title = "Client Sync", category = "REPLY", timeSlot = "01:30 PM", description = "Reviewing the Q4 roadmap with the Stakeholder group.", isCompleted = false, isRollover = true, date = "2024-10-24", durationHours = 1, location = "Slack / Zoom"),
-            TaskEntity(title = "Expense Audit", category = "ADMIN", timeSlot = "04:00 PM", description = "Automated audit log review of SaaS subscriptions.", isCompleted = false, isRollover = false, date = "2024-10-24", durationHours = 1, location = "Local First Dashboard"),
-            // Let's add some for dynamic dates to play around
-            TaskEntity(title = "System Core Sync", category = "WORK", timeSlot = "10:00 AM", description = "Review product roadmap and engineering team velocity.", isCompleted = false, isRollover = false, date = "2024-10-25", durationHours = 1, location = "Main Studio"),
-            TaskEntity(title = "Deep Work Focus", category = "WORK", timeSlot = "09:00 AM", description = "Implement engine refactoring schemas.", isCompleted = false, isRollover = false, date = "2024-10-25", durationHours = 2, location = "Sleek Workspace")
-        )
-        for (t in tasks) {
-            lifeDao.insertTask(t)
-        }
-
-        // 4. Goals & Milestones Defaults
-        val goalId1 = lifeDao.insertGoal(
-            GoalEntity(
-                title = "Buy a Motorcycle",
-                targetTimeline = "Est. 6 Months",
-                domain = "Wealth",
-                horizon = "Quarterly",
-                progressPercent = 0,
-                visionImage = "https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=600&auto=format&fit=crop&q=80"
-            )
-        ).toInt()
-
-        val goalId2 = lifeDao.insertGoal(
-            GoalEntity(
-                title = "Senior Software Architect",
-                targetTimeline = "5 Years",
-                domain = "Career",
-                horizon = "Yearly",
-                progressPercent = 14,
-                visionImage = "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=600&auto=format&fit=crop&q=80"
-            )
-        ).toInt()
-
-        // Milestones for Goal 1 (Motorcycle)
-        val m1 = lifeDao.insertMilestone(MilestoneEntity(goalId = goalId1, title = "Save $5k", description = "Establish a dedicated high-yield savings account for the bike fund and automate monthly transfers.", status = "ACTIVE", dueDate = "Due in 3 mo", iconName = "payments")).toInt()
-        lifeDao.insertMilestone(MilestoneEntity(goalId = goalId1, title = "Complete Riding Course", description = "Enroll in the Basic RiderCourse (BRC) to gain essential skills and earn your license waiver.", status = "LOCKED", iconName = "sports_motorsports"))
-        lifeDao.insertMilestone(MilestoneEntity(goalId = goalId1, title = "Purchase Safety Gear", description = "Invest in ECE-rated helmet, armored jacket, gloves, and protective boots before the bike purchase.", status = "LOCKED", iconName = "shield"))
-        lifeDao.insertMilestone(MilestoneEntity(goalId = goalId1, title = "Final Purchase", description = "Visit local dealers, test ride selected models, and finalize the purchase of your first motorcycle.", status = "LOCKED", iconName = "two_wheeler"))
-
-        // Milestones for Goal 2 (Senior Software Architect)
-        val m5 = lifeDao.insertMilestone(MilestoneEntity(goalId = goalId2, title = "Master System Design", description = "Phase 1 • 6 Months", status = "ACTIVE", iconName = "architecture")).toInt()
-        lifeDao.insertMilestone(MilestoneEntity(goalId = goalId2, title = "Lead a Major Project", description = "Phase 2 • 12 Months", status = "LOCKED", iconName = "groups"))
-        lifeDao.insertMilestone(MilestoneEntity(goalId = goalId2, title = "Open Source Contribution", description = "Phase 3 • 4 Months", status = "LOCKED", iconName = "terminal"))
-        lifeDao.insertMilestone(MilestoneEntity(goalId = goalId2, title = "Architect Certification", description = "Phase 4 • 3 Months", status = "LOCKED", iconName = "workspace_premium"))
-
-        // Add sub tasks for the active Master System Design milestone (m5) or general checklist demo
-        val mOverhaul = lifeDao.insertMilestone(MilestoneEntity(goalId = goalId2, title = "Architectural System Overhaul", description = "Implement the core V2 engine logic to handle high-concurrency event streams and optimize database normalization.", status = "ACTIVE", dueDate = "DUE IN 4 DAYS", iconName = "terminal")).toInt()
-        lifeDao.insertSubTask(SubTaskEntity(milestoneId = mOverhaul, title = "Design updated event interface", isCompleted = true))
-        lifeDao.insertSubTask(SubTaskEntity(milestoneId = mOverhaul, title = "Prototype data migration script", isCompleted = true))
-        lifeDao.insertSubTask(SubTaskEntity(milestoneId = mOverhaul, title = "Refactor schema for V2 normalization", isCompleted = false))
-        lifeDao.insertSubTask(SubTaskEntity(milestoneId = mOverhaul, title = "Stress test concurrency limits", isCompleted = false))
     }
 }

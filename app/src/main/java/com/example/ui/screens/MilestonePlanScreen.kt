@@ -13,9 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,6 +39,15 @@ fun MilestonePlanScreen(viewModel: LifeViewModel) {
 
     val goal = allGoals.find { it.id == selectedGoalId } ?: allGoals.firstOrNull()
 
+    // Dialog state for AI Assisted Milestone Editing
+    var showEditDialog by remember { mutableStateOf(false) }
+    var showImagePicker by remember { mutableStateOf(false) }
+    var showScheduleTasksDialog by remember { mutableStateOf(false) }
+    var editingMilestoneId by remember { mutableStateOf<Int?>(null) }
+    var editedTitle by remember { mutableStateOf("") }
+    var editedDesc by remember { mutableStateOf("") }
+    var aiInstructionText by remember { mutableStateOf("") }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -55,6 +62,19 @@ fun MilestonePlanScreen(viewModel: LifeViewModel) {
                 navigationIcon = {
                     IconButton(onClick = { viewModel.navigateTo("PROFILE") }) {
                         Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    goal?.let { g ->
+                        IconButton(onClick = {
+                            viewModel.deleteGoal(g)
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete Goal",
+                                tint = Error
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Background)
@@ -98,6 +118,22 @@ fun MilestonePlanScreen(viewModel: LifeViewModel) {
                                 )
                             )
                     )
+
+                    IconButton(
+                        onClick = { showImagePicker = true },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(12.dp)
+                            .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                            .size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AddPhotoAlternate,
+                            contentDescription = "Change Vision Photo",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
 
                     Column(
                         modifier = Modifier
@@ -278,23 +314,46 @@ fun MilestonePlanScreen(viewModel: LifeViewModel) {
                                     }
                                 }
 
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(
-                                            if (isCompleted) OnTertiaryContainer
-                                            else if (isActive) SecondaryContainer
-                                            else SurfaceContainerHighest
-                                        )
-                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Text(
-                                        text = milestone.status,
-                                        style = MaterialTheme.typography.labelMedium.copy(fontSize = 9.sp),
-                                        color = if (isCompleted) OnTertiaryFixed
-                                               else if (isActive) OnSecondaryContainer
-                                               else OnSurfaceVariant.copy(alpha = 0.5f)
-                                    )
+                                    // AI ASSIST EDIT ACTION
+                                    IconButton(
+                                        onClick = {
+                                            editingMilestoneId = milestone.id
+                                            editedTitle = milestone.title
+                                            editedDesc = milestone.description
+                                            aiInstructionText = ""
+                                            showEditDialog = true
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.AutoAwesome,
+                                            contentDescription = "Edit step with AI",
+                                            tint = Secondary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(
+                                                if (isCompleted) OnTertiaryContainer
+                                                else if (isActive) SecondaryContainer
+                                                else SurfaceContainerHighest
+                                            )
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text(
+                                            text = milestone.status,
+                                            style = MaterialTheme.typography.labelMedium.copy(fontSize = 9.sp),
+                                            color = if (isCompleted) OnTertiaryFixed
+                                                   else if (isActive) OnSecondaryContainer
+                                                   else OnSurfaceVariant.copy(alpha = 0.5f)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -302,7 +361,321 @@ fun MilestonePlanScreen(viewModel: LifeViewModel) {
                 }
             }
 
+            // DAILY PLANNER & WORK SCHEDULE CARD
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = SurfaceContainerHigh
+                ),
+                shape = RoundedCornerShape(18.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, Secondary.copy(alpha = 0.35f), RoundedCornerShape(18.dp))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(Secondary.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = "AI Planner",
+                                tint = Secondary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "DAILY EXECUTION BLUEPRINT",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = Secondary
+                            )
+                            Text(
+                                text = "Put Phase Tasks into Daily Planner",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = OnSurface
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = "Break down grand vision milestones into step-by-step daily tasks on your Planner — intelligently scheduled around your Full-Time or Part-Time work hours.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = OnSurfaceVariant
+                    )
+
+                    Button(
+                        onClick = { showScheduleTasksDialog = true },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = OnSurface,
+                            contentColor = BaseDark
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "SCHEDULE DAILY TASKS (WITH JOB BLOCKS)",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
+                }
+            } ?: run {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 48.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.padding(horizontal = 24.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(CircleShape)
+                                .background(Secondary.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.RocketLaunch,
+                                contentDescription = "No Goals",
+                                tint = Secondary,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                        Text(
+                            text = "No Long-Term Goals Defined Yet",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = OnSurface,
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = "Define a high-impact goal to generate an AI-tailored milestone roadmap and daily execution steps.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = OnSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                        Button(
+                            onClick = { viewModel.navigateTo("DEFINE_GOAL") },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Secondary,
+                                contentColor = BaseDark
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Define a Goal with AI",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(48.dp))
         }
+    }
+
+    if (showScheduleTasksDialog) {
+        com.example.ui.components.SchedulePhaseTasksDialog(
+            viewModel = viewModel,
+            goal = goal,
+            milestones = milestones,
+            onDismiss = { showScheduleTasksDialog = false },
+            onTasksScheduled = { count ->
+                // Handled in dialog
+            }
+        )
+    }
+
+    if (showImagePicker && goal != null) {
+        com.example.ui.components.ImagePickerDialog(
+            title = "Customize Vision Board Photo",
+            currentImageUrl = goal.visionImage,
+            onDismiss = { showImagePicker = false },
+            onImageSelected = { newUrl ->
+                viewModel.updateGoalVisionImage(goal.id, newUrl)
+            }
+        )
+    }
+
+    // custom Material 3 AlertDialog for Edit Step with AI Assist
+    val activeEditingId = editingMilestoneId
+    if (showEditDialog && activeEditingId != null) {
+        val isRewritingMilestone by viewModel.isRewritingMilestone.collectAsState()
+
+        AlertDialog(
+            onDismissRequest = { if (!isRewritingMilestone) showEditDialog = false },
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        tint = Secondary
+                    )
+                    Text("Edit Step with AI Assist", style = MaterialTheme.typography.titleMedium, color = OnSurface)
+                }
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // Title Field
+                    OutlinedTextField(
+                        value = editedTitle,
+                        onValueChange = { editedTitle = it },
+                        label = { Text("Milestone Title", color = OnSurfaceVariant) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = OnSurface,
+                            unfocusedTextColor = OnSurface,
+                            focusedBorderColor = Secondary,
+                            unfocusedBorderColor = OutlineVariant,
+                            focusedLabelColor = Secondary
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !isRewritingMilestone
+                    )
+
+                    // Description Field
+                    OutlinedTextField(
+                        value = editedDesc,
+                        onValueChange = { editedDesc = it },
+                        label = { Text("Milestone Description", color = OnSurfaceVariant) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = OnSurface,
+                            unfocusedTextColor = OnSurface,
+                            focusedBorderColor = Secondary,
+                            unfocusedBorderColor = OutlineVariant,
+                            focusedLabelColor = Secondary
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !isRewritingMilestone,
+                        maxLines = 4
+                    )
+
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
+
+                    // AI Assist rewrite instructions
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "AI REWRITE ASSISTANCE",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Secondary,
+                            fontWeight = FontWeight.Bold
+                        )
+                        OutlinedTextField(
+                            value = aiInstructionText,
+                            onValueChange = { aiInstructionText = it },
+                            label = { Text("How should Gemini rewrite this?", color = OnSurfaceVariant) },
+                            placeholder = { Text("e.g. Focus on savings instead, make it take 1 month, rewrite professionally", color = OnSurfaceVariant.copy(alpha = 0.4f)) },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = OnSurface,
+                                unfocusedTextColor = OnSurface,
+                                focusedBorderColor = Secondary,
+                                unfocusedBorderColor = OutlineVariant,
+                                focusedLabelColor = Secondary
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !isRewritingMilestone,
+                            maxLines = 3
+                        )
+
+                        Button(
+                            onClick = {
+                                if (aiInstructionText.isNotBlank()) {
+                                    viewModel.editMilestoneWithAIAssist(
+                                        milestoneId = activeEditingId,
+                                        promptInstruction = aiInstructionText,
+                                        onSuccess = { newTitle, newDesc ->
+                                            editedTitle = newTitle
+                                            editedDesc = newDesc
+                                            aiInstructionText = ""
+                                        }
+                                    )
+                                }
+                            },
+                            enabled = aiInstructionText.isNotBlank() && !isRewritingMilestone,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = SecondaryContainer,
+                                contentColor = OnSecondaryContainer
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            if (isRewritingMilestone) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    CircularProgressIndicator(color = OnSecondaryContainer, modifier = Modifier.size(16.dp))
+                                    Text("Gemini is rewriting step...", style = MaterialTheme.typography.labelMedium)
+                                }
+                            } else {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.Default.Psychology, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Text("Ask AI to Rewrite Step", style = MaterialTheme.typography.labelMedium)
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (editedTitle.isNotBlank() && editedDesc.isNotBlank()) {
+                            viewModel.updateMilestoneDetails(
+                                milestoneId = activeEditingId,
+                                newTitle = editedTitle,
+                                newDesc = editedDesc
+                            )
+                            showEditDialog = false
+                        }
+                    },
+                    enabled = !isRewritingMilestone && editedTitle.isNotBlank() && editedDesc.isNotBlank(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = OnSurface,
+                        contentColor = BaseDark
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Save Changes")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showEditDialog = false },
+                    enabled = !isRewritingMilestone
+                ) {
+                    Text("Cancel", color = OnSurfaceVariant)
+                }
+            },
+            containerColor = SolidSurface,
+            shape = RoundedCornerShape(24.dp)
+        )
     }
 }

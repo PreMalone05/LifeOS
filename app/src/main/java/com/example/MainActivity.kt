@@ -1,9 +1,13 @@
 package com.example
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -22,6 +26,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.ui.screens.*
 import com.example.ui.theme.MyApplicationTheme
@@ -32,9 +37,30 @@ import com.example.ui.theme.OnSurfaceVariant
 import com.example.viewmodel.LifeViewModel
 
 class MainActivity : ComponentActivity() {
+
+    private val requestNotificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            com.example.notification.SmartNotificationManager.createNotificationChannel(this)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Create notification channel
+        com.example.notification.SmartNotificationManager.createNotificationChannel(this)
+
+        // Handle POST_NOTIFICATIONS permission for Android 13+ (API 33)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+            if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
+                requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+
         setContent {
             MyApplicationTheme {
                 val viewModel: LifeViewModel = viewModel()
@@ -151,20 +177,28 @@ fun LifeOSAppShell(viewModel: LifeViewModel) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = if (showBottomBar) 0.dp else 0.dp) // Handled padding inside screens cleanly
+                .padding(bottom = innerPadding.calculateBottomPadding())
         ) {
             when (currentScreen) {
+                "ONBOARDING" -> OnboardingScreen(viewModel)
                 "TODAY" -> TodayScreen(viewModel)
                 "PLANNER" -> PlannerScreen(viewModel)
                 "HABITS" -> HabitsScreen(viewModel)
                 "INSIGHTS" -> InsightsScreen(viewModel)
                 "PROFILE" -> ProfileScreen(viewModel)
                 "COACH_TUNING" -> TuningScreen(viewModel)
+                "AI_SETTINGS" -> com.example.ui.screens.AiSettingsScreen(viewModel = viewModel, onBack = { viewModel.navigateTo("PROFILE") })
                 "DEFINE_GOAL" -> DefineGoalScreen(viewModel)
                 "MILESTONE_PLAN" -> MilestonePlanScreen(viewModel)
                 "MILESTONE_CHECKIN" -> MilestoneCheckInScreen(viewModel)
                 "MISSION_ACCOMPLISHED" -> CelebrationScreen(viewModel)
+                "COACH_CHAT" -> CoachChatScreen(viewModel)
                 else -> TodayScreen(viewModel)
+            }
+
+            // Floating Persistent Pomodoro Focus Timer (only when onboarded/in main app)
+            if (currentScreen != "ONBOARDING") {
+                PomodoroTimerOverlay(viewModel = viewModel)
             }
         }
     }

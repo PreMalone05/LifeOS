@@ -29,13 +29,16 @@ import com.example.ui.theme.*
 @Composable
 fun MilestoneCheckInScreen(viewModel: LifeViewModel) {
     val selectedMilestoneId by viewModel.selectedMilestoneId.collectAsState()
+    val selectedMilestone by viewModel.selectedMilestone.collectAsState()
     val subTasks by viewModel.selectedSubTasks.collectAsState()
     val userProfile by viewModel.userProfile.collectAsState()
 
-    // Default to Milestone ID 9 (Architectural System Overhaul) if null
     val milestoneId = selectedMilestoneId ?: 9
+    val milestoneTitle = selectedMilestone?.title ?: "Architectural System Overhaul"
+    val milestoneDesc = selectedMilestone?.description ?: "Implement core distributed architecture event streams and optimize schema layouts."
 
     var showAddChecklistDialog by remember { mutableStateOf(false) }
+    var showScheduleTasksDialog by remember { mutableStateOf(false) }
     var journalText by remember { mutableStateOf("Working through event interface specifications. V2 schema draft is complete, and performance is looking excellent.") }
 
     val coachPersonality = userProfile?.coachPersonality ?: "The Stoic Mentor"
@@ -78,12 +81,12 @@ fun MilestoneCheckInScreen(viewModel: LifeViewModel) {
                     color = Secondary
                 )
                 Text(
-                    text = if (milestoneId == 9) "Architectural System Overhaul" else "Save $5k Bike Fund",
+                    text = milestoneTitle,
                     style = MaterialTheme.typography.displayLarge.copy(fontSize = 32.sp),
                     color = OnSurface
                 )
                 Text(
-                    text = if (milestoneId == 9) "Implement core distributed architecture event streams and optimize schema layouts." else "Establish a dedicated high-yield savings account and automate deposit metrics.",
+                    text = milestoneDesc,
                     style = MaterialTheme.typography.bodyMedium,
                     color = OnSurfaceVariant
                 )
@@ -168,11 +171,25 @@ fun MilestoneCheckInScreen(viewModel: LifeViewModel) {
 
             // Journal entry textarea
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    text = "METRIC SCRATCHPAD & JOURNAL",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = OnSurfaceVariant
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "METRIC SCRATCHPAD & JOURNAL",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = OnSurfaceVariant
+                    )
+                    Text(
+                        text = "Generate AI Feedback",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Tertiary,
+                        modifier = Modifier.clickable {
+                            viewModel.generateMilestoneEvaluation(milestoneTitle, milestoneDesc, journalText)
+                        }
+                    )
+                }
 
                 OutlinedTextField(
                     value = journalText,
@@ -190,6 +207,9 @@ fun MilestoneCheckInScreen(viewModel: LifeViewModel) {
                     maxLines = 6
                 )
             }
+
+            val milestoneEvaluation by viewModel.milestoneEvaluation.collectAsState()
+            val isLoadingEvaluation by viewModel.isLoadingEvaluation.collectAsState()
 
             // AI Coach Quote Box
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -225,48 +245,101 @@ fun MilestoneCheckInScreen(viewModel: LifeViewModel) {
                             )
                         }
 
-                        val coachPhrase = when (coachPersonality) {
-                            "The Stoic Mentor" -> "\"Let progress be incremental but absolute, $userName. What stands in the way becomes the way. Master this layout refactor now.\""
-                            "The Strategic Architect" -> "\"Calculating focus efficiency densities, $userName. Completing this refactor eliminates 82% of future code integration latency. Finish strong.\""
-                            "The Philosophical Guide" -> "\"Ponder the space of creation, $userName. Writing pristine code is an act of deep clarity. Take breath, then execute carefully.\""
-                            else -> "\"Epic effort on the database layer, $userName! Crunch the remaining steps, log the win, and let's level up today!\""
-                        }
+                        if (isLoadingEvaluation) {
+                            Box(
+                                modifier = Modifier.fillMaxWidth().height(60.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    color = Tertiary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        } else {
+                            val coachPhrase = milestoneEvaluation ?: when (coachPersonality) {
+                                "The Stoic Mentor" -> "\"Let progress be incremental but absolute, $userName. What stands in the way becomes the way. Master this layout refactor now.\""
+                                "The Strategic Architect" -> "\"Calculating focus efficiency densities, $userName. Completing this refactor eliminates 82% of future code integration latency. Finish strong.\""
+                                "The Philosophical Guide" -> "\"Ponder the space of creation, $userName. Writing pristine code is an act of deep clarity. Take breath, then execute carefully.\""
+                                else -> "\"Epic effort on the database layer, $userName! Crunch the remaining steps, log the win, and let's level up today!\""
+                            }
 
-                        Text(
-                            text = coachPhrase,
-                            style = MaterialTheme.typography.headlineSmall.copy(
-                                fontSize = 18.sp,
-                                fontStyle = FontStyle.Italic,
-                                fontWeight = FontWeight.Medium
-                            ),
-                            color = OnSurface
-                        )
+                            Text(
+                                text = coachPhrase,
+                                style = MaterialTheme.typography.headlineSmall.copy(
+                                    fontSize = 18.sp,
+                                    fontStyle = FontStyle.Italic,
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = OnSurface
+                            )
+                        }
                     }
                 }
             }
 
-            // Submission controls
-            Button(
-                onClick = {
-                    viewModel.markMilestoneAsComplete(milestoneId)
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = SecondaryContainer,
-                    contentColor = OnSecondaryContainer
-                ),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(vertical = 16.dp)
-            ) {
-                Text(
-                    text = "COMPLETE MILESTONE",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold
-                )
+            // Action controls
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(
+                    onClick = { showScheduleTasksDialog = true },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = OnSurface,
+                        contentColor = BaseDark
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(vertical = 14.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "SCHEDULE DAILY TASKS WITH WORK HOURS",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Button(
+                    onClick = {
+                        viewModel.markMilestoneAsComplete(milestoneId)
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = SecondaryContainer,
+                        contentColor = OnSecondaryContainer
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(vertical = 14.dp)
+                ) {
+                    Text(
+                        text = "COMPLETE MILESTONE",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(48.dp))
         }
+    }
+
+    if (showScheduleTasksDialog) {
+        val allGoals by viewModel.allGoals.collectAsState()
+        val allMilestones by viewModel.selectedMilestones.collectAsState()
+        val selectedGoalId by viewModel.selectedGoalId.collectAsState()
+        val goal = allGoals.find { it.id == selectedGoalId } ?: allGoals.firstOrNull()
+
+        com.example.ui.components.SchedulePhaseTasksDialog(
+            viewModel = viewModel,
+            goal = goal,
+            milestones = allMilestones,
+            initialMilestoneId = milestoneId,
+            onDismiss = { showScheduleTasksDialog = false },
+            onTasksScheduled = { }
+        )
     }
 
     if (showAddChecklistDialog) {
@@ -274,7 +347,7 @@ fun MilestoneCheckInScreen(viewModel: LifeViewModel) {
 
         AlertDialog(
             onDismissRequest = { showAddChecklistDialog = false },
-            containerColor = SurfaceContainer,
+            containerColor = SolidSurface,
             title = {
                 Text("Add Checklist Step", style = MaterialTheme.typography.headlineMedium, color = OnSurface)
             },

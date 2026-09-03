@@ -5,6 +5,7 @@ import androidx.compose.ui.graphics.Color
 // Neutral Base & Canvas
 val Background = Color.Transparent
 val BaseDark = Color(0xFF0F1115)
+val SolidSurface = Color(0xFF1E2026) // Solid dark slate for dialogs/pop-ups to eliminate extreme transparency
 val OnBackground = Color(0xFFF1F5F9) // Slate-100
 
 val Surface = Color(0x0EFFFFFF) // Semi-transparent glass base
@@ -44,6 +45,15 @@ val Error = Color(0xFFFCA5A5) // Soft red alert
 val OnError = Color(0xFF7F1D1D)
 val ErrorContainer = Color(0xFF991B1B)
 val OnErrorContainer = Color(0xFFFEE2E2)
+
+val Success = Color(0xFF4ADE80) // Mint green success
+val OnSuccess = Color(0xFF052E16)
+val SuccessContainer = Color(0xFF14532D)
+
+val Warning = Color(0xFFFFB74D) // Amber warning
+val OnWarning = Color(0xFF78350F)
+val WarningContainer = Color(0xFFB45309)
+val OnWarningContainer = Color(0xFFFEF3C7)
 
 // Fixed Tonal Sets (for gradients and badges)
 val PrimaryFixed = Color(0xFFE8DEF8)
