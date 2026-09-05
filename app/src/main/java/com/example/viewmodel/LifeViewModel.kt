@@ -88,6 +88,14 @@ class LifeViewModel(application: Application) : AndroidViewModel(application) {
     val isSendingChatMessage: StateFlow<Boolean> = _isSendingChatMessage.asStateFlow()
 
     private val repository: LifeRepository
+    private val backupManager: BackupManager
+
+    // Local Backup & Restore states
+    private val _isBackupOperating = MutableStateFlow(false)
+    val isBackupOperating: StateFlow<Boolean> = _isBackupOperating.asStateFlow()
+
+    private val _backupOperationResult = MutableStateFlow<BackupResult?>(null)
+    val backupOperationResult: StateFlow<BackupResult?> = _backupOperationResult.asStateFlow()
 
     // AI Insight states
     private val _todayInsight = MutableStateFlow("Analyzing your dashboard focus density and active streaks...")
@@ -209,6 +217,7 @@ class LifeViewModel(application: Application) : AndroidViewModel(application) {
     init {
         val database = LifeDatabase.getDatabase(application)
         repository = LifeRepository(database.lifeDao())
+        backupManager = BackupManager(database)
 
         // Check user profile and onboarded state
         viewModelScope.launch {
@@ -1376,6 +1385,28 @@ class LifeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repository.clearAllSystemData()
             startPersonalizationAgain()
+        }
+    }
+
+    fun dismissBackupResult() {
+        _backupOperationResult.value = null
+    }
+
+    fun exportBackupToUri(uri: android.net.Uri) {
+        viewModelScope.launch {
+            _isBackupOperating.value = true
+            val result = backupManager.exportBackup(getApplication(), uri)
+            _isBackupOperating.value = false
+            _backupOperationResult.value = result
+        }
+    }
+
+    fun restoreBackupFromUri(uri: android.net.Uri) {
+        viewModelScope.launch {
+            _isBackupOperating.value = true
+            val result = backupManager.restoreBackup(getApplication(), uri)
+            _isBackupOperating.value = false
+            _backupOperationResult.value = result
         }
     }
 

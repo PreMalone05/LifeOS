@@ -2,7 +2,9 @@ package com.example.data
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import kotlinx.serialization.Serializable
 
+@Serializable
 @Entity(tableName = "user_profile")
 data class UserProfileEntity(
     @PrimaryKey val id: Int = 1,
@@ -42,6 +44,7 @@ data class UserProfileEntity(
     val insightsBannerUrl: String? = null
 )
 
+@Serializable
 @Entity(tableName = "tasks")
 data class TaskEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
@@ -61,6 +64,7 @@ data class TaskEntity(
     val status: String = "PENDING" // "PENDING", "COMPLETED", "SKIPPED", "DEFERRED"
 )
 
+@Serializable
 @Entity(tableName = "daily_reviews")
 data class DailyReviewEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
@@ -73,6 +77,7 @@ data class DailyReviewEntity(
     val timestamp: Long = System.currentTimeMillis()
 )
 
+@Serializable
 @Entity(tableName = "habits")
 data class HabitEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
@@ -85,6 +90,7 @@ data class HabitEntity(
     val streak: Int = 0
 )
 
+@Serializable
 @Entity(tableName = "goals")
 data class GoalEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
@@ -96,6 +102,7 @@ data class GoalEntity(
     val progressPercent: Int = 0
 )
 
+@Serializable
 @Entity(tableName = "milestones")
 data class MilestoneEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
@@ -107,6 +114,7 @@ data class MilestoneEntity(
     val iconName: String // "payments", "sports_motorsports", "shield", "two_wheeler", "architecture", "groups", "terminal", "workspace_premium"
 )
 
+@Serializable
 @Entity(tableName = "sub_tasks")
 data class SubTaskEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
@@ -115,6 +123,7 @@ data class SubTaskEntity(
     val isCompleted: Boolean = false
 )
 
+@Serializable
 @Entity(tableName = "chat_messages")
 data class ChatMessageEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
@@ -123,6 +132,7 @@ data class ChatMessageEntity(
     val timestamp: Long = System.currentTimeMillis()
 )
 
+@Serializable
 @Entity(tableName = "recurring_alarms")
 data class RecurringAlarmEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
@@ -135,6 +145,7 @@ data class RecurringAlarmEntity(
     val soundEnabled: Boolean = true
 )
 
+@Serializable
 @Entity(tableName = "behavioral_events")
 data class BehavioralEventEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
@@ -150,6 +161,7 @@ data class BehavioralEventEntity(
     val date: String = ""
 )
 
+@Serializable
 @Entity(tableName = "task_performance_records")
 data class TaskPerformanceRecordEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
@@ -168,6 +180,7 @@ data class TaskPerformanceRecordEntity(
     val date: String = ""
 )
 
+@Serializable
 @Entity(tableName = "recommendation_feedback")
 data class RecommendationFeedbackEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
@@ -177,6 +190,7 @@ data class RecommendationFeedbackEntity(
     val timestamp: Long = System.currentTimeMillis()
 )
 
+@Serializable
 @Entity(tableName = "learned_patterns")
 data class LearnedPatternEntity(
     @PrimaryKey val patternKey: String,
@@ -186,6 +200,7 @@ data class LearnedPatternEntity(
     val lastUpdated: Long = System.currentTimeMillis()
 )
 
+@Serializable
 @Entity(tableName = "predictive_recommendations")
 data class PredictiveRecommendationEntity(
     @PrimaryKey val id: String,
@@ -202,6 +217,7 @@ data class PredictiveRecommendationEntity(
     val state: String = "CREATED" // "CREATED", "SHOWN", "ACCEPTED", "DISMISSED", "IGNORED", "EXPIRED"
 )
 
+@Serializable
 @Entity(
     tableName = "predictive_notification_history",
     indices = [

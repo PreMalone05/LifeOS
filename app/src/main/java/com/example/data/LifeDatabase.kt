@@ -32,6 +32,8 @@ abstract class LifeDatabase : RoomDatabase() {
     abstract fun lifeDao(): LifeDao
 
     companion object {
+        const val DATABASE_VERSION = 11
+
         @Volatile
         private var INSTANCE: LifeDatabase? = null
 

@@ -1,5 +1,8 @@
 package com.example.ui.screens
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -25,10 +28,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
+import com.example.data.BackupResult
 import com.example.viewmodel.LifeViewModel
 import com.example.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,6 +67,30 @@ fun ProfileScreen(viewModel: LifeViewModel) {
     var showImagePicker by remember { mutableStateOf(false) }
     var showAlarmsSheet by remember { mutableStateOf(false) }
     var showWorkScheduleDialog by remember { mutableStateOf(false) }
+
+    // Local Backup & Restore states
+    val isBackupOperating by viewModel.isBackupOperating.collectAsState()
+    val backupOperationResult by viewModel.backupOperationResult.collectAsState()
+    var pendingRestoreUri by remember { mutableStateOf<Uri?>(null) }
+    var showRestoreConfirmDialog by remember { mutableStateOf(false) }
+
+    // Storage Access Framework Activity Result Launchers
+    val createDocumentLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri: Uri? ->
+        if (uri != null) {
+            viewModel.exportBackupToUri(uri)
+        }
+    }
+
+    val openDocumentLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            pendingRestoreUri = uri
+            showRestoreConfirmDialog = true
+        }
+    }
     
     val coroutineScope = rememberCoroutineScope()
 
@@ -1361,6 +1392,130 @@ fun ProfileScreen(viewModel: LifeViewModel) {
                 }
             }
 
+            // Local Data Backup & Safety Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = SolidSurface),
+                border = BorderStroke(1.dp, OutlineVariant.copy(alpha = 0.3f))
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(Secondary.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.SaveAlt,
+                                contentDescription = "Local Backup",
+                                tint = Secondary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Column {
+                            Text(
+                                text = "Local Backup & Restore",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = OnSurface
+                            )
+                            Text(
+                                text = "Export all tasks, habits, and goals to JSON. No cloud sync required.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = OnSurfaceVariant
+                            )
+                        }
+                    }
+
+                    if (isBackupOperating) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                                color = Secondary
+                            )
+                            Text(
+                                text = "Processing backup operation...",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = OnSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Backup Data Button
+                        Button(
+                            onClick = {
+                                val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+                                val fileName = "lifeos_backup_$timestamp.json"
+                                createDocumentLauncher.launch(fileName)
+                            },
+                            enabled = !isBackupOperating,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Secondary,
+                                contentColor = OnSecondary
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.UploadFile,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Backup Data",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        // Restore from Backup Button
+                        OutlinedButton(
+                            onClick = {
+                                openDocumentLauncher.launch(arrayOf("application/json", "text/plain", "*/*"))
+                            },
+                            enabled = !isBackupOperating,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, Secondary.copy(alpha = 0.5f)),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Secondary)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.FileDownload,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Restore",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+
             // Configuration Options (System resetting)
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1722,6 +1877,150 @@ fun ProfileScreen(viewModel: LifeViewModel) {
                     endDate = vEnd,
                     notes = vNotes
                 )
+            }
+        )
+    }
+
+    // Restore from Backup Confirmation Warning Dialog
+    if (showRestoreConfirmDialog && pendingRestoreUri != null) {
+        AlertDialog(
+            onDismissRequest = {
+                showRestoreConfirmDialog = false
+                pendingRestoreUri = null
+            },
+            containerColor = SolidSurface,
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = "Warning",
+                        tint = Error
+                    )
+                    Text(
+                        text = "Overwrite All Data?",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = OnSurface
+                    )
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "Restoring this backup will permanently replace all current tasks, habits, goals, milestones, and settings in LifeOS with data from the selected backup file.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = OnSurface
+                    )
+                    Text(
+                        text = "This operation is all-or-nothing: if the file is invalid, corrupted, or incompatible, no existing data will be modified.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = OnSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val uriToRestore = pendingRestoreUri
+                        showRestoreConfirmDialog = false
+                        pendingRestoreUri = null
+                        if (uriToRestore != null) {
+                            viewModel.restoreBackupFromUri(uriToRestore)
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Error)
+                ) {
+                    Text("OVERWRITE & RESTORE", fontWeight = FontWeight.Bold, color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showRestoreConfirmDialog = false
+                        pendingRestoreUri = null
+                    }
+                ) {
+                    Text("CANCEL", color = OnSurfaceVariant)
+                }
+            }
+        )
+    }
+
+    // Backup / Restore Operation Result Notification Dialog
+    if (backupOperationResult != null) {
+        val result = backupOperationResult!!
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissBackupResult() },
+            containerColor = SolidSurface,
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    when (result) {
+                        is BackupResult.Success -> {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = "Success",
+                                tint = Secondary
+                            )
+                            Text(
+                                text = "Operation Successful",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = OnSurface
+                            )
+                        }
+                        is BackupResult.Failure -> {
+                            Icon(
+                                imageVector = Icons.Default.Error,
+                                contentDescription = "Error",
+                                tint = Error
+                            )
+                            Text(
+                                text = "Operation Failed",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = OnSurface
+                            )
+                        }
+                    }
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    when (result) {
+                        is BackupResult.Success -> {
+                            Text(
+                                text = result.message,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = OnSurface
+                            )
+                            result.details?.let { details ->
+                                Text(
+                                    text = "Profile: ${if (details.hasProfile) "Included" else "Default"} • Tasks: ${details.tasksCount} • Habits: ${details.habitsCount} • Goals: ${details.goalsCount} • Alarms: ${details.alarmsCount}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = OnSurfaceVariant
+                                )
+                            }
+                        }
+                        is BackupResult.Failure -> {
+                            Text(
+                                text = result.errorMessage,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Error
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.dismissBackupResult() }) {
+                    Text("OK", color = Secondary, fontWeight = FontWeight.Bold)
+                }
             }
         )
     }

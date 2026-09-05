@@ -229,4 +229,110 @@ interface LifeDao {
 
     @Query("DELETE FROM predictive_notification_history WHERE dispatchedTimestamp < :cutoffTimestamp")
     suspend fun pruneOldNotificationHistory(cutoffTimestamp: Long)
+
+    // ==========================================
+    // Local Backup & Atomic Restore Operations
+    // ==========================================
+
+    // User Profile
+    @Query("SELECT * FROM user_profile WHERE id = 1 LIMIT 1")
+    suspend fun getUserProfileDirect(): UserProfileEntity?
+
+    @Query("DELETE FROM user_profile")
+    suspend fun clearUserProfile()
+
+    // Tasks
+    @Query("SELECT * FROM tasks")
+    suspend fun getAllTasksList(): List<TaskEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTasks(tasks: List<TaskEntity>)
+
+    // Habits
+    @Query("SELECT * FROM habits")
+    suspend fun getAllHabitsList(): List<HabitEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertHabits(habits: List<HabitEntity>)
+
+    // Goals
+    @Query("SELECT * FROM goals")
+    suspend fun getAllGoalsList(): List<GoalEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertGoals(goals: List<GoalEntity>)
+
+    // Milestones
+    @Query("SELECT * FROM milestones")
+    suspend fun getAllMilestonesList(): List<MilestoneEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertMilestones(milestones: List<MilestoneEntity>)
+
+    // Sub Tasks
+    @Query("SELECT * FROM sub_tasks")
+    suspend fun getAllSubTasksList(): List<SubTaskEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSubTasks(subTasks: List<SubTaskEntity>)
+
+    // Chat Messages
+    @Query("SELECT * FROM chat_messages ORDER BY timestamp ASC")
+    suspend fun getAllChatMessagesList(): List<ChatMessageEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertChatMessages(messages: List<ChatMessageEntity>)
+
+    // Recurring Alarms
+    @Query("SELECT * FROM recurring_alarms")
+    suspend fun getAllRecurringAlarmsList(): List<RecurringAlarmEntity>
+
+    @Query("DELETE FROM recurring_alarms")
+    suspend fun clearAllRecurringAlarms()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertRecurringAlarms(alarms: List<RecurringAlarmEntity>)
+
+    // Daily Reviews
+    @Query("SELECT * FROM daily_reviews ORDER BY timestamp DESC")
+    suspend fun getAllDailyReviewsList(): List<DailyReviewEntity>
+
+    @Query("DELETE FROM daily_reviews")
+    suspend fun clearAllDailyReviews()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertDailyReviews(reviews: List<DailyReviewEntity>)
+
+    // Behavioral Events
+    @Query("SELECT * FROM behavioral_events")
+    suspend fun getAllBehavioralEventsList(): List<BehavioralEventEntity>
+
+    // Task Performance Records
+    @Query("SELECT * FROM task_performance_records")
+    suspend fun getAllTaskPerformanceRecordsList(): List<TaskPerformanceRecordEntity>
+
+    // Recommendation Feedback
+    @Query("SELECT * FROM recommendation_feedback")
+    suspend fun getAllRecommendationFeedbackList(): List<RecommendationFeedbackEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertRecommendationFeedbacks(feedbacks: List<RecommendationFeedbackEntity>)
+
+    // Learned Patterns
+    @Query("SELECT * FROM learned_patterns")
+    suspend fun getAllLearnedPatternsList(): List<LearnedPatternEntity>
+
+    @Query("DELETE FROM learned_patterns")
+    suspend fun clearAllLearnedPatterns()
+
+    // Predictive Recommendations
+    @Query("SELECT * FROM predictive_recommendations")
+    suspend fun getAllPredictiveRecommendationsList(): List<PredictiveRecommendationEntity>
+
+    // Predictive Notification History
+    @Query("SELECT * FROM predictive_notification_history")
+    suspend fun getAllNotificationHistoryList(): List<PredictiveNotificationHistoryEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertNotificationHistories(histories: List<PredictiveNotificationHistoryEntity>)
 }
