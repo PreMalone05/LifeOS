@@ -20,6 +20,9 @@ object PredictiveNotificationManager {
     // Deduplication duration: 12 hours
     const val DEDUPLICATION_MILLIS = 12 * 60 * 60 * 1000L
 
+    // Maximum proactive notifications allowed globally per calendar day
+    const val MAX_DAILY_PROACTIVE_NOTIFICATIONS = 4
+
     // Prune cutoff: 14 days
     const val PRUNE_CUTOFF_MILLIS = 14 * 24 * 60 * 60 * 1000L
 
@@ -76,14 +79,29 @@ object PredictiveNotificationManager {
 
         return runBlocking {
             try {
-                // 1. Check deduplication hash (within 12h)
+                // 1. Enforce global daily quota (maximum 4 notifications per calendar day)
+                val cal = Calendar.getInstance().apply {
+                    timeInMillis = currentTimeMillis
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+                val startOfDayMillis = cal.timeInMillis
+                val dispatchedToday = dao.getDispatchedCountSince(startOfDayMillis)
+                if (dispatchedToday >= MAX_DAILY_PROACTIVE_NOTIFICATIONS) {
+                    Log.d(TAG, "Notification skipped due to daily quota: $dispatchedToday >= $MAX_DAILY_PROACTIVE_NOTIFICATIONS")
+                    return@runBlocking false
+                }
+
+                // 2. Check deduplication hash (within 12h)
                 val lastHashTime = dao.getLastDispatchedTimestampForHash(hash) ?: 0L
                 if (currentTimeMillis - lastHashTime < DEDUPLICATION_MILLIS) {
                     Log.d(TAG, "Notification skipped due to persisted deduplication: $hash")
                     return@runBlocking false
                 }
 
-                // 2. Check Cooldown by Type (within 3h)
+                // 3. Check Cooldown by Type (within 3h)
                 val lastTypeTime = dao.getLastDispatchedTimestampForType(recommendation.type.name) ?: 0L
                 if (currentTimeMillis - lastTypeTime < COOLDOWN_MILLIS) {
                     Log.d(TAG, "Notification skipped due to persisted type cooldown: ${recommendation.type.name}")

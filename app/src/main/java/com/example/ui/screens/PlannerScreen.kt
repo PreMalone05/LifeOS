@@ -89,6 +89,22 @@ fun PlannerScreen(viewModel: LifeViewModel) {
         viewModel.getUnifiedScheduleForDate(selectedDate, dayTasks, allGoals, allRecurringAlarms, calendarEvents)
     }
 
+    var isSearchActive by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+
+    val filteredSchedule = remember(unifiedSchedule, searchQuery) {
+        if (searchQuery.isBlank()) {
+            unifiedSchedule
+        } else {
+            unifiedSchedule.filter { item ->
+                item.title.contains(searchQuery, ignoreCase = true) ||
+                item.description.contains(searchQuery, ignoreCase = true) ||
+                item.timeSlotFormatted.contains(searchQuery, ignoreCase = true) ||
+                item.categoryOrDomain.contains(searchQuery, ignoreCase = true)
+            }
+        }
+    }
+
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -97,39 +113,67 @@ fun PlannerScreen(viewModel: LifeViewModel) {
         topBar = {
             TopAppBar(
                 title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Image(
-                            painter = rememberAsyncImagePainter(
-                                model = userProfile?.photoUrl ?: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80"
+                    if (isSearchActive) {
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            placeholder = { Text("Search planner...", style = MaterialTheme.typography.bodyMedium) },
+                            singleLine = true,
+                            trailingIcon = {
+                                if (searchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { searchQuery = "" }) {
+                                        Icon(Icons.Default.Clear, contentDescription = "Clear search", modifier = Modifier.size(20.dp))
+                                    }
+                                }
+                            },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Secondary,
+                                unfocusedBorderColor = OutlineVariant,
+                                focusedTextColor = OnSurface,
+                                unfocusedTextColor = OnSurface
                             ),
-                            contentDescription = "Profile",
                             modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .border(1.5.dp, Secondary.copy(alpha = 0.6f), CircleShape)
-                                .clickable {
-                                    pickerTitle = "Change Profile Picture"
-                                    pickerTarget = "AVATAR"
-                                    showImagePicker = true
-                                },
-                            contentScale = ContentScale.Crop
+                                .fillMaxWidth()
+                                .padding(end = 8.dp)
                         )
-                        Text(
-                            text = "Planner",
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                            color = OnSurface
-                        )
+                    } else {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Image(
+                                painter = rememberAsyncImagePainter(
+                                    model = userProfile?.photoUrl ?: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80"
+                                ),
+                                contentDescription = "Profile",
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .border(1.5.dp, Secondary.copy(alpha = 0.6f), CircleShape)
+                                    .clickable {
+                                        pickerTitle = "Change Profile Picture"
+                                        pickerTarget = "AVATAR"
+                                        showImagePicker = true
+                                    },
+                                contentScale = ContentScale.Crop
+                            )
+                            Text(
+                                text = "Planner",
+                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                color = OnSurface
+                            )
+                        }
                     }
                 },
                 actions = {
-                    IconButton(onClick = { }) {
+                    IconButton(onClick = {
+                        isSearchActive = !isSearchActive
+                        if (!isSearchActive) searchQuery = ""
+                    }) {
                         Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Search",
-                            tint = OnSurfaceVariant
+                            imageVector = if (isSearchActive) Icons.Default.Close else Icons.Default.Search,
+                            contentDescription = if (isSearchActive) "Close Search" else "Search",
+                            tint = if (isSearchActive) Secondary else OnSurfaceVariant
                         )
                     }
                 },
@@ -152,14 +196,20 @@ fun PlannerScreen(viewModel: LifeViewModel) {
         },
         containerColor = Background
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .padding(innerPadding),
+            contentAlignment = Alignment.TopCenter
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 640.dp)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
             // Planner Banner Card
             Box(
                 modifier = Modifier
@@ -598,7 +648,7 @@ fun PlannerScreen(viewModel: LifeViewModel) {
             }
 
             // Timeline chronological vertical blocks from unifiedSchedule
-            if (unifiedSchedule.isEmpty()) {
+            if (filteredSchedule.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -616,15 +666,16 @@ fun PlannerScreen(viewModel: LifeViewModel) {
                             modifier = Modifier.size(48.dp)
                         )
                         Text(
-                            text = "No focus blocks, alarms or vision tasks for today.",
+                            text = if (searchQuery.isNotBlank()) "No matching items found for \"$searchQuery\"." else "No focus blocks, alarms or vision tasks for today.",
                             color = OnSurfaceVariant.copy(alpha = 0.6f),
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
             } else {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    unifiedSchedule.forEach { item ->
+                    filteredSchedule.forEach { item ->
                         val (leftColor, typeBadgeLabel, badgeBg) = when {
                             item.title.contains("🏢") || item.title.contains("Job Work") || item.title.contains("Core Work") ->
                                 Triple(Primary, "JOB SHIFT 🏢", Primary.copy(alpha = 0.15f))
@@ -1009,6 +1060,7 @@ fun PlannerScreen(viewModel: LifeViewModel) {
             Spacer(modifier = Modifier.height(64.dp))
         }
     }
+}
 
     if (showImagePicker) {
         com.example.ui.components.ImagePickerDialog(

@@ -213,14 +213,20 @@ fun TodayScreen(viewModel: LifeViewModel) {
         },
         containerColor = Background
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+                .padding(innerPadding),
+            contentAlignment = Alignment.TopCenter
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 640.dp)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
             // Welcome back & Level Badge
             userProfile?.let { profile ->
                 Row(
@@ -1443,6 +1449,7 @@ fun TodayScreen(viewModel: LifeViewModel) {
             Spacer(modifier = Modifier.height(48.dp))
         }
     }
+}
 
     if (showImagePicker) {
         com.example.ui.components.ImagePickerDialog(

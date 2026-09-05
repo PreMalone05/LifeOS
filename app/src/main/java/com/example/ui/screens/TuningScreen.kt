@@ -61,14 +61,20 @@ fun TuningScreen(viewModel: LifeViewModel) {
         },
         containerColor = Background
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(28.dp)
+                .padding(innerPadding),
+            contentAlignment = Alignment.TopCenter
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 640.dp)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(28.dp)
+            ) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = "RE-ENGAGEMENT MODEL PROFILE",
@@ -257,4 +263,5 @@ fun TuningScreen(viewModel: LifeViewModel) {
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
+}
 }

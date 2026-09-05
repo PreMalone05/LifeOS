@@ -42,21 +42,29 @@ fun OnboardingScreen(viewModel: LifeViewModel) {
             .fillMaxSize()
             .background(Background)
             .statusBarsPadding()
-            .navigationBarsPadding()
+            .navigationBarsPadding(),
+        contentAlignment = Alignment.TopCenter
     ) {
-        AnimatedContent(
-            targetState = onboardingStep,
-            transitionSpec = {
-                fadeIn(animationSpec = tween(300)) togetherWith fadeOut(animationSpec = tween(300))
-            },
-            label = "OnboardingStepTransition"
-        ) { step ->
-            when (step) {
-                OnboardingStep.WELCOME -> WelcomeStep(viewModel)
-                OnboardingStep.GOOGLE_SIGN_IN -> GoogleSignInStep(viewModel)
-                OnboardingStep.INTERESTS -> InterestsStep(viewModel)
-                OnboardingStep.AI_INTERVIEW -> AIInterviewStep(viewModel)
-                OnboardingStep.REVIEW_CONFIRM -> ReviewConfirmStep(viewModel)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .widthIn(max = 640.dp),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            AnimatedContent(
+                targetState = onboardingStep,
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(300)) togetherWith fadeOut(animationSpec = tween(300))
+                },
+                label = "OnboardingStepTransition"
+            ) { step ->
+                when (step) {
+                    OnboardingStep.WELCOME -> WelcomeStep(viewModel)
+                    OnboardingStep.GOOGLE_SIGN_IN -> GoogleSignInStep(viewModel)
+                    OnboardingStep.INTERESTS -> InterestsStep(viewModel)
+                    OnboardingStep.AI_INTERVIEW -> AIInterviewStep(viewModel)
+                    OnboardingStep.REVIEW_CONFIRM -> ReviewConfirmStep(viewModel)
+                }
             }
         }
     }

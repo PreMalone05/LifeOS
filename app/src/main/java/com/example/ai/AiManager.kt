@@ -192,24 +192,12 @@ class AiManager private constructor(private val context: Context) {
         """.trimIndent()
 
         val rawResponse = generateContent(prompt)
-        val cleaned = cleanJsonResponse(rawResponse)
-
         try {
-            val json = JSONObject(cleaned)
-            val id = json.optString("id", "q_$questionIndex")
-            val question = json.optString("question", getDefaultQuestionText(selectedInterests, questionIndex))
-            val contextTopic = json.optString("contextTopic", getDefaultTopic(questionIndex))
-            val optsArray = json.optJSONArray("options")
-            val options = mutableListOf<String>()
-            if (optsArray != null) {
-                for (i in 0 until optsArray.length()) {
-                    options.add(optsArray.getString(i))
-                }
-            }
-            if (options.isEmpty()) {
-                options.addAll(getDefaultOptions(questionIndex))
-            }
-            val finalQ = json.optBoolean("isFinalQuestion", isFinal)
+            val dto = AiJsonParser.decode<AdaptiveInterviewQuestionDto>(rawResponse)
+            val id = dto.id?.takeIf { it.isNotBlank() } ?: "q_$questionIndex"
+            val question = dto.question?.takeIf { it.isNotBlank() } ?: getDefaultQuestionText(selectedInterests, questionIndex)
+            val contextTopic = dto.contextTopic?.takeIf { it.isNotBlank() } ?: getDefaultTopic(questionIndex)
+            val options = dto.options.ifEmpty { getDefaultOptions(questionIndex) }
 
             AdaptiveInterviewQuestion(
                 id = id,
@@ -217,12 +205,12 @@ class AiManager private constructor(private val context: Context) {
                 contextTopic = contextTopic,
                 options = options,
                 allowCustomInput = true,
-                isFinalQuestion = finalQ,
+                isFinalQuestion = dto.isFinalQuestion,
                 questionIndex = questionIndex,
                 totalEstimatedQuestions = totalEstimated
             )
         } catch (e: Exception) {
-            Log.w(TAG, "Failed to parse interview question JSON: $cleaned", e)
+            Log.w(TAG, "Failed to parse interview question JSON via AiJsonParser", e)
             fallbackQuestion(selectedInterests, questionIndex, isFinal, totalEstimated)
         }
     }
@@ -280,60 +268,44 @@ class AiManager private constructor(private val context: Context) {
         """.trimIndent()
 
         val rawResponse = generateContent(prompt)
-        val cleaned = cleanJsonResponse(rawResponse)
-
         try {
-            val json = JSONObject(cleaned)
-            val focusSummary = json.optString("focusSummary", "Personalized focus balancing ${selectedInterests.take(2).joinToString(" & ")}")
-            val topPriority = json.optString("topPriority", "Build momentum and daily consistency")
-            val planningStyle = json.optString("planningStyle", "Time Blocking & Priority Checklist")
-            val scheduleConstraints = json.optString("scheduleConstraints", "Standard daily routine with focused priority blocks")
-            val reminderIntensity = json.optString("reminderIntensity", "Balanced")
+            val dto = AiJsonParser.decode<PersonalizedPlannerConfigDto>(rawResponse)
+            val focusSummary = dto.focusSummary?.takeIf { it.isNotBlank() }
+                ?: "Personalized focus balancing ${selectedInterests.take(2).joinToString(" & ")}"
+            val topPriority = dto.topPriority?.takeIf { it.isNotBlank() }
+                ?: "Build momentum and daily consistency"
+            val planningStyle = dto.planningStyle?.takeIf { it.isNotBlank() }
+                ?: "Time Blocking & Priority Checklist"
+            val scheduleConstraints = dto.scheduleConstraints?.takeIf { it.isNotBlank() }
+                ?: "Standard daily routine with focused priority blocks"
+            val reminderIntensity = dto.reminderIntensity.ifBlank { "Balanced" }
 
-            val categoriesList = mutableListOf<String>()
-            val catArr = json.optJSONArray("suggestedStarterCategories")
-            if (catArr != null) {
-                for (i in 0 until catArr.length()) {
-                    categoriesList.add(catArr.getString(i))
-                }
-            }
-            if (categoriesList.isEmpty()) {
-                categoriesList.addAll(listOf("WORK", "HEALTH", "GROWTH", "ROUTINE"))
+            val categoriesList = dto.suggestedStarterCategories.ifEmpty {
+                listOf("WORK", "HEALTH", "GROWTH", "ROUTINE")
             }
 
-            val habitsList = mutableListOf<SuggestedHabitItem>()
-            val habitArr = json.optJSONArray("suggestedStarterHabits")
-            if (habitArr != null) {
-                for (i in 0 until habitArr.length()) {
-                    val h = habitArr.getJSONObject(i)
-                    habitsList.add(
-                        SuggestedHabitItem(
-                            name = h.optString("name", "Daily Habit"),
-                            targetValue = h.optDouble("targetValue", 1.0).toFloat(),
-                            unit = h.optString("unit", "reps"),
-                            iconName = h.optString("iconName", "check_circle"),
-                            isSelected = true
-                        )
-                    )
-                }
-            }
-            if (habitsList.isEmpty()) {
-                habitsList.addAll(getDefaultSuggestedHabits(selectedInterests))
+            val habitsList = dto.suggestedStarterHabits.map { h ->
+                SuggestedHabitItem(
+                    name = h.name?.takeIf { it.isNotBlank() } ?: "Daily Habit",
+                    targetValue = h.targetValue,
+                    unit = h.unit,
+                    iconName = h.iconName,
+                    isSelected = h.isSelected
+                )
+            }.ifEmpty {
+                getDefaultSuggestedHabits(selectedInterests)
             }
 
-            val goalObj = json.optJSONObject("suggestedStarterGoal")
-            val goalItem = if (goalObj != null) {
+            val goalItem = dto.suggestedStarterGoal?.let { g ->
                 SuggestedGoalItem(
-                    title = goalObj.optString("title", "Establish Core Daily Focus"),
-                    domain = goalObj.optString("domain", "Growth"),
-                    horizon = goalObj.optString("horizon", "Quarterly"),
-                    firstMilestoneTitle = goalObj.optString("firstMilestoneTitle", "Foundation Setup"),
-                    firstMilestoneDesc = goalObj.optString("firstMilestoneDesc", "Set up primary routines and baseline materials"),
+                    title = g.title?.takeIf { it.isNotBlank() } ?: "Establish Core Daily Focus",
+                    domain = g.domain,
+                    horizon = g.horizon,
+                    firstMilestoneTitle = g.firstMilestoneTitle.ifBlank { "Foundation Setup" },
+                    firstMilestoneDesc = g.firstMilestoneDesc.ifBlank { "Set up primary routines and baseline materials" },
                     isSelected = true
                 )
-            } else {
-                getDefaultSuggestedGoal(selectedInterests)
-            }
+            } ?: getDefaultSuggestedGoal(selectedInterests)
 
             PersonalizedPlannerConfig(
                 focusSummary = focusSummary,
@@ -346,7 +318,7 @@ class AiManager private constructor(private val context: Context) {
                 suggestedStarterGoal = goalItem
             )
         } catch (e: Exception) {
-            Log.w(TAG, "Failed to parse planner config JSON: $cleaned", e)
+            Log.w(TAG, "Failed to parse planner config JSON via AiJsonParser", e)
             fallbackPlannerConfig(userName, selectedInterests, history)
         }
     }
@@ -421,42 +393,34 @@ class AiManager private constructor(private val context: Context) {
         """.trimIndent()
 
         val raw = generateContent(prompt)
-        val cleaned = cleanJsonResponse(raw)
         try {
-            val json = JSONObject(cleaned)
-            val summary = json.optString("summary", "Schedule adjusted to accommodate $rebalanceTrigger.")
-            val bufferRestored = json.optInt("bufferRestoredMinutes", 30)
+            val dto = AiJsonParser.decode<AdaptiveRebalanceResultDto>(raw)
+            val summary = dto.summary?.takeIf { it.isNotBlank() } ?: "Schedule adjusted to accommodate $rebalanceTrigger."
 
-            fun parseTaskList(key: String): List<RebalanceTaskProposal> {
-                val list = mutableListOf<RebalanceTaskProposal>()
-                val arr = json.optJSONArray(key) ?: return list
-                for (i in 0 until arr.length()) {
-                    val obj = arr.getJSONObject(i)
-                    list.add(
-                        RebalanceTaskProposal(
-                            taskId = obj.optInt("taskId", 0),
-                            title = obj.optString("title", ""),
-                            originalTimeSlot = obj.optString("originalTimeSlot", ""),
-                            newTimeSlot = obj.optString("newTimeSlot", ""),
-                            priority = obj.optString("priority", "IMPORTANT"),
-                            action = obj.optString("action", "KEEP_TODAY"),
-                            reason = obj.optString("reason", "")
-                        )
+            fun mapTasks(list: List<RebalanceTaskProposalDto>): List<RebalanceTaskProposal> {
+                return list.map {
+                    RebalanceTaskProposal(
+                        taskId = it.taskId,
+                        title = it.title,
+                        originalTimeSlot = it.originalTimeSlot,
+                        newTimeSlot = it.newTimeSlot,
+                        priority = it.priority.ifBlank { "IMPORTANT" },
+                        action = it.action.ifBlank { "KEEP_TODAY" },
+                        reason = it.reason
                     )
                 }
-                return list
             }
 
             AdaptiveRebalanceResult(
                 summary = summary,
                 triggerReason = rebalanceTrigger,
-                keptTasks = parseTaskList("keptTasks"),
-                deferredTasks = parseTaskList("deferredTasks"),
-                droppedTasks = parseTaskList("droppedTasks"),
-                bufferRestoredMinutes = bufferRestored
+                keptTasks = mapTasks(dto.keptTasks),
+                deferredTasks = mapTasks(dto.deferredTasks),
+                droppedTasks = mapTasks(dto.droppedTasks),
+                bufferRestoredMinutes = dto.bufferRestoredMinutes
             )
         } catch (e: Exception) {
-            Log.w(TAG, "Failed to parse rebalance JSON, using deterministic fallback", e)
+            Log.w(TAG, "Failed to parse rebalance JSON via AiJsonParser, using deterministic fallback", e)
             fallbackRebalance(currentTasks, rebalanceTrigger)
         }
     }
@@ -503,27 +467,26 @@ class AiManager private constructor(private val context: Context) {
         """.trimIndent()
 
         val raw = generateContent(prompt)
-        val cleaned = cleanJsonResponse(raw)
         try {
-            val json = JSONObject(cleaned)
-            val status = json.optString("capacityStatus", if (totalPlannedHours > availableHours) "OVERCOMMITTED" else "OPTIMAL")
-            val cap = json.optInt("realisticTaskCap", 4)
-            val insight = json.optString("realityInsight", "Planned workload is balanced within your energy baseline.")
+            val dto = AiJsonParser.decode<AdaptiveCapacityReportDto>(raw)
+            val status = dto.capacityStatus?.takeIf { it.isNotBlank() }
+                ?: if (totalPlannedHours > availableHours) "OVERCOMMITTED" else "OPTIMAL"
+            val cap = if (dto.realisticTaskCap > 0) dto.realisticTaskCap else 4
+            val insight = dto.realityInsight?.takeIf { it.isNotBlank() }
+                ?: "Planned workload is balanced within your energy baseline."
 
-            val obsArray = json.optJSONArray("transparentObservations")
-            val obs = mutableListOf<String>()
-            if (obsArray != null) {
-                for (i in 0 until obsArray.length()) obs.add(obsArray.getString(i))
-            }
-            if (obs.isEmpty()) {
-                obs.add("Observed average: $historicalAvgHours h completed daily")
-                obs.add("Planned today: $totalPlannedHours h across ${plannedTasks.size} tasks")
+            val obs = dto.transparentObservations.ifEmpty {
+                listOf(
+                    "Observed average: $historicalAvgHours h completed daily",
+                    "Planned today: $totalPlannedHours h across ${plannedTasks.size} tasks"
+                )
             }
 
-            val tipsArray = json.optJSONArray("actionableTips")
-            val tips = mutableListOf<String>()
-            if (tipsArray != null) {
-                for (i in 0 until tipsArray.length()) tips.add(tipsArray.getString(i))
+            val tips = dto.actionableTips.ifEmpty {
+                listOf(
+                    "Protect Critical tasks first",
+                    "Leave 45 min buffer before afternoon meetings"
+                )
             }
 
             AdaptiveCapacityReport(
@@ -592,15 +555,14 @@ class AiManager private constructor(private val context: Context) {
         """.trimIndent()
 
         val raw = generateContent(prompt)
-        val cleaned = cleanJsonResponse(raw)
         try {
-            val json = JSONObject(cleaned)
+            val dto = AiJsonParser.decode<EveningReviewSummaryDto>(raw)
             EveningReviewSummary(
-                suggestedScore = json.optString("suggestedScore", "BALANCED"),
-                coachPraise = json.optString("coachPraise", "Solid effort today. You moved the needle on your key objectives."),
-                completionSummary = json.optString("completionSummary", "Completed ${completedTasks.size} tasks and $habitsCompletedCount habits."),
-                leftoverTriageAdvice = json.optString("leftoverTriageAdvice", if (pendingTasks.isNotEmpty()) "Roll remaining items to tomorrow's focus blocks." else "Clean slate achieved!"),
-                tomorrowSetupAdvice = json.optString("tomorrowSetupAdvice", "Get quality rest and begin tomorrow with your highest-priority focus task.")
+                suggestedScore = dto.suggestedScore?.takeIf { it.isNotBlank() } ?: "BALANCED",
+                coachPraise = dto.coachPraise?.takeIf { it.isNotBlank() } ?: "Solid effort today. You moved the needle on your key objectives.",
+                completionSummary = dto.completionSummary?.takeIf { it.isNotBlank() } ?: "Completed ${completedTasks.size} tasks and $habitsCompletedCount habits.",
+                leftoverTriageAdvice = dto.leftoverTriageAdvice?.takeIf { it.isNotBlank() } ?: if (pendingTasks.isNotEmpty()) "Roll remaining items to tomorrow's focus blocks." else "Clean slate achieved!",
+                tomorrowSetupAdvice = dto.tomorrowSetupAdvice?.takeIf { it.isNotBlank() } ?: "Get quality rest and begin tomorrow with your highest-priority focus task."
             )
         } catch (e: Exception) {
             EveningReviewSummary(
@@ -654,43 +616,18 @@ class AiManager private constructor(private val context: Context) {
 
         try {
             val response = generateContent(prompt)
-            val cleaned = cleanJsonResponse(response)
-            val jsonArray = JSONArray(cleaned)
-            val results = mutableListOf<PersonalizedInsightItem>()
-
-            for (i in 0 until jsonArray.length()) {
-                val obj = jsonArray.getJSONObject(i)
-                val id = obj.optString("id", "insight_$i")
-                val title = obj.optString("title", "Productivity Insight")
-                val insightText = obj.optString("insightText", "")
-                val whyExplanation = obj.optString("whyExplanation", "Derived from your planning history.")
-                val category = obj.optString("category", "PLANNING")
-                val confStr = obj.optString("confidence", context.dataConfidence)
-                val conf = try { ConfidenceLevel.valueOf(confStr) } catch (e: Exception) { ConfidenceLevel.MODERATE_CONFIDENCE }
-
-                val evidencePoints = mutableListOf<String>()
-                val evArray = obj.optJSONArray("evidencePoints")
-                if (evArray != null) {
-                    for (j in 0 until evArray.length()) {
-                        evidencePoints.add(evArray.getString(j))
-                    }
-                }
-                if (evidencePoints.isEmpty()) {
-                    evidencePoints.add("Accuracy Score: ${context.planningAccuracyScore}/100")
-                }
-                val recType = obj.optString("recommendationType", "REBALANCE_ADVICE")
-
-                results.add(
-                    PersonalizedInsightItem(
-                        id = id,
-                        title = title,
-                        insightText = insightText,
-                        whyExplanation = whyExplanation,
-                        category = category,
-                        confidence = conf,
-                        evidencePoints = evidencePoints,
-                        recommendationType = recType
-                    )
+            val dtos = AiJsonParser.decode<List<PersonalizedInsightItemDto>>(response)
+            val results = dtos.mapIndexed { i, dto ->
+                val conf = try { ConfidenceLevel.valueOf(dto.confidence) } catch (e: Exception) { ConfidenceLevel.MODERATE_CONFIDENCE }
+                PersonalizedInsightItem(
+                    id = dto.id?.takeIf { it.isNotBlank() } ?: "insight_$i",
+                    title = dto.title?.takeIf { it.isNotBlank() } ?: "Productivity Insight",
+                    insightText = dto.insightText.orEmpty(),
+                    whyExplanation = dto.whyExplanation?.takeIf { it.isNotBlank() } ?: "Derived from your planning history.",
+                    category = dto.category.ifBlank { "PLANNING" },
+                    confidence = conf,
+                    evidencePoints = dto.evidencePoints.ifEmpty { listOf("Accuracy Score: ${context.planningAccuracyScore}/100") },
+                    recommendationType = dto.recommendationType.ifBlank { "TIME_SLOT_SUGGESTION" }
                 )
             }
 
@@ -737,16 +674,7 @@ class AiManager private constructor(private val context: Context) {
     }
 
     private fun cleanJsonResponse(raw: String): String {
-        var clean = raw.trim()
-        if (clean.startsWith("```json")) {
-            clean = clean.removePrefix("```json").trim()
-        } else if (clean.startsWith("```")) {
-            clean = clean.removePrefix("```").trim()
-        }
-        if (clean.endsWith("```")) {
-            clean = clean.removeSuffix("```").trim()
-        }
-        return clean
+        return AiJsonParser.extractStructuredJson(raw)
     }
 
     private fun getDefaultQuestionText(interests: List<String>, index: Int): String {

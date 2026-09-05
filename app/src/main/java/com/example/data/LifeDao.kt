@@ -218,6 +218,9 @@ interface LifeDao {
     @Query("SELECT MAX(dispatchedTimestamp) FROM predictive_notification_history WHERE deduplicationHash = :hash")
     suspend fun getLastDispatchedTimestampForHash(hash: String): Long?
 
+    @Query("SELECT COUNT(*) FROM predictive_notification_history WHERE dispatchedTimestamp >= :startOfDayTimestamp")
+    suspend fun getDispatchedCountSince(startOfDayTimestamp: Long): Int
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertNotificationHistory(history: PredictiveNotificationHistoryEntity): Long
 

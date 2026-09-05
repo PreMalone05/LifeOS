@@ -123,14 +123,20 @@ fun InsightsScreen(viewModel: LifeViewModel) {
         },
         containerColor = Background
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+                .padding(innerPadding),
+            contentAlignment = Alignment.TopCenter
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 640.dp)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
             // Insights Hero Banner Card
             Box(
                 modifier = Modifier
@@ -579,6 +585,7 @@ fun InsightsScreen(viewModel: LifeViewModel) {
             Spacer(modifier = Modifier.height(64.dp))
         }
     }
+}
 
     // "Why this recommendation?" Explanation Modal
     whyDialogItem?.let { item ->

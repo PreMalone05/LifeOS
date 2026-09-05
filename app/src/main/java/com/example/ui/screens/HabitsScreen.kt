@@ -56,6 +56,16 @@ fun HabitsScreen(viewModel: LifeViewModel) {
     val totalCount = allHabits.size
     val progressPercent = if (totalCount > 0) (completedCount * 100) / totalCount else 0
 
+    var habitFilter by remember { mutableStateOf("ALL") } // "ALL", "PENDING", "COMPLETED"
+
+    val filteredHabits = remember(allHabits, habitFilter) {
+        when (habitFilter) {
+            "PENDING" -> allHabits.filter { !it.isCompleted }
+            "COMPLETED" -> allHabits.filter { it.isCompleted }
+            else -> allHabits
+        }
+    }
+
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -124,14 +134,20 @@ fun HabitsScreen(viewModel: LifeViewModel) {
         },
         containerColor = Background
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(28.dp)
+                .padding(innerPadding),
+            contentAlignment = Alignment.TopCenter
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 640.dp)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(28.dp)
+            ) {
             // Habits Hero Banner Card
             Box(
                 modifier = Modifier
@@ -251,8 +267,45 @@ fun HabitsScreen(viewModel: LifeViewModel) {
                 }
             }
 
+            // Filter Chips
+            if (allHabits.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    FilterChip(
+                        selected = habitFilter == "ALL",
+                        onClick = { habitFilter = "ALL" },
+                        label = { Text("All (${allHabits.size})") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = SecondaryContainer,
+                            selectedLabelColor = OnSecondaryContainer
+                        )
+                    )
+                    FilterChip(
+                        selected = habitFilter == "PENDING",
+                        onClick = { habitFilter = "PENDING" },
+                        label = { Text("Pending (${allHabits.count { !it.isCompleted }})") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = SecondaryContainer,
+                            selectedLabelColor = OnSecondaryContainer
+                        )
+                    )
+                    FilterChip(
+                        selected = habitFilter == "COMPLETED",
+                        onClick = { habitFilter = "COMPLETED" },
+                        label = { Text("Done (${allHabits.count { it.isCompleted }})") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = SecondaryContainer,
+                            selectedLabelColor = OnSecondaryContainer
+                        )
+                    )
+                }
+            }
+
             // Habits Grid (2 columns)
-            if (allHabits.isEmpty()) {
+            if (filteredHabits.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -270,12 +323,14 @@ fun HabitsScreen(viewModel: LifeViewModel) {
                             modifier = Modifier.size(48.dp)
                         )
                         Text(
-                            text = "No active habits configured.",
+                            text = if (allHabits.isEmpty()) "No active habits configured." else "No habits match the '$habitFilter' filter.",
                             color = OnSurfaceVariant,
                             style = MaterialTheme.typography.bodyMedium
                         )
-                        TextButton(onClick = { showAddHabitDialog = true }) {
-                            Text("+ Create a Custom Habit", color = Secondary)
+                        if (allHabits.isEmpty()) {
+                            TextButton(onClick = { showAddHabitDialog = true }) {
+                                Text("+ Create a Custom Habit", color = Secondary)
+                            }
                         }
                     }
                 }
@@ -288,7 +343,7 @@ fun HabitsScreen(viewModel: LifeViewModel) {
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        val col1Habits = allHabits.filterIndexed { idx, _ -> idx % 2 == 0 }
+                        val col1Habits = filteredHabits.filterIndexed { idx, _ -> idx % 2 == 0 }
                         col1Habits.forEach { habit ->
                             SwipeToDeleteHabit(
                                 habit = habit,
@@ -319,7 +374,7 @@ fun HabitsScreen(viewModel: LifeViewModel) {
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        val col2Habits = allHabits.filterIndexed { idx, _ -> idx % 2 != 0 }
+                        val col2Habits = filteredHabits.filterIndexed { idx, _ -> idx % 2 != 0 }
                         col2Habits.forEach { habit ->
                             SwipeToDeleteHabit(
                                 habit = habit,
@@ -491,6 +546,7 @@ fun HabitsScreen(viewModel: LifeViewModel) {
             Spacer(modifier = Modifier.height(48.dp))
         }
     }
+}
 
     if (showImagePicker) {
         com.example.ui.components.ImagePickerDialog(
@@ -729,14 +785,16 @@ fun HabitCard(habit: HabitEntity, onCheckIn: () -> Unit, onDelete: () -> Unit) {
                     style = MaterialTheme.typography.headlineSmall.copy(fontSize = 16.sp),
                     color = OnSurface,
                     textAlign = TextAlign.Center,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = if (habit.unit == "Done" && habit.isCompleted) "Done" else "${habit.currentValue.toInt()} / ${habit.targetValue.toInt()} ${habit.unit}",
                     style = MaterialTheme.typography.labelSmall,
                     color = OnSurfaceVariant,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 

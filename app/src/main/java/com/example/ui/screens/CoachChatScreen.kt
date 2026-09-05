@@ -110,13 +110,19 @@ fun CoachChatScreen(viewModel: LifeViewModel) {
             )
         }
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .imePadding(), // Ensure keyboard moves input field
-            verticalArrangement = Arrangement.SpaceBetween
+                .padding(innerPadding),
+            contentAlignment = Alignment.TopCenter
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .widthIn(max = 640.dp)
+                    .imePadding(), // Ensure keyboard moves input field
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
             // 1. Scrollable Message Board
             LazyColumn(
                 state = listState,
@@ -337,4 +343,5 @@ fun CoachChatScreen(viewModel: LifeViewModel) {
             }
         }
     }
+}
 }

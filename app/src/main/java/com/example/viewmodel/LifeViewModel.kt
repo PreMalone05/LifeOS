@@ -383,15 +383,28 @@ class LifeViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
 
+                // Compile lightweight context summary (goals, habits + streaks, recent completions)
+                val goals = allGoals.value
+                val habits = allHabits.value
+                val allTaskList = allTasks.value
+                val contextSummary = com.example.ai.AiContextSummaryBuilder.buildSummary(
+                    goals = goals,
+                    habits = habits,
+                    allTasks = allTaskList,
+                    todayDate = dateString
+                )
+
                 val systemPrompt = """
-                    You are $coach, an elite AI productivity advisor. Your task is to analyze the user's schedule (work hours, WFH/office mode, vacation status, local calendar events, and planned tasks) for today and synthesize a high-impact, elite "Morning Briefing" snippet. 
+                    You are $coach, an elite AI productivity advisor. Your task is to analyze the user's schedule (work hours, WFH/office mode, vacation status, local calendar events, and planned tasks) for today, connected to their active goals, habits + streaks, and recent progress, to synthesize a high-impact, elite "Morning Briefing" snippet. 
                     The user's display name is $username.
                     Their current mindset/vibe is "$currentVibe".
                     Keep the tone professional, motivating, and closely aligned with $coach.
 
+                    $contextSummary
+
                     Focus on:
                     1. Acknowledging their work environment context (WFH vs Office vs Weekend vs Vacation) and work hours.
-                    2. Synthesizing scheduled calendar events and planned tasks.
+                    2. Synthesizing scheduled calendar events and planned tasks in relation to their overarching goals and habit momentum.
                     3. Highlighting task priorities and pointing out any potential schedule conflicts, timing overlaps, or tight gaps.
                     4. Giving a concise, highly strategic coaching suggestion (tactical, specific, no generic platitudes) for dominating the day.
                     Do not use markdown bold/asterisks or titles within the main briefing. Format with clean, readable spacing or bullet points if necessary.
@@ -404,6 +417,9 @@ class LifeViewModel(application: Application) : AndroidViewModel(application) {
                     Active Streak: $streak days
                     Level: ${profile.level} (XP: ${profile.xp}/${profile.maxXp})
 
+                    Active Goals, Habits & Recent Progress:
+                    $contextSummary
+
                     Schedule & Work Mode:
                     $scheduleContextStr
 
@@ -413,7 +429,7 @@ class LifeViewModel(application: Application) : AndroidViewModel(application) {
                     Local Calendar Events for Today:
                     $eventsListStr
 
-                    Synthesize these inputs. Check for overlapping times or scheduling conflicts (e.g. a calendar meeting coinciding with a planned task duration). Emphasize high-priority work aligned with their WFH/Office/Vacation status and give me a sharp, motivating morning briefing snippet. Keep it short and actionable.
+                    Synthesize these inputs. Connect their daily tasks and habits to their overarching goals. Check for overlapping times or scheduling conflicts (e.g. a calendar meeting coinciding with a planned task duration). Emphasize high-priority work aligned with their WFH/Office/Vacation status and give me a sharp, motivating morning briefing snippet. Keep it short and actionable.
                 """.trimIndent()
 
                 val result = GeminiService.generateContent(userPrompt, systemPrompt)
@@ -2853,13 +2869,25 @@ class LifeViewModel(application: Application) : AndroidViewModel(application) {
                 // 2. Fetch full current history
                 val history = chatMessages.value
 
-                // 3. Retrieve user profile to establish high-impact alignment
+                // 3. Retrieve user profile and data to establish persistent context continuity
                 val profile = userProfile.value ?: repository.userProfile.firstOrNull() ?: com.example.data.UserProfileEntity()
                 val coach = profile.coachPersonality
                 val vibe = profile.currentVibe
                 val name = profile.name
+                val todayDate = getTodayDateString()
 
-                // 4. Set role-specific, high-craft coaching system instruction
+                val goals = allGoals.value
+                val habits = allHabits.value
+                val tasks = allTasks.value
+
+                val contextSummary = com.example.ai.AiContextSummaryBuilder.buildSummary(
+                    goals = goals,
+                    habits = habits,
+                    allTasks = tasks,
+                    todayDate = todayDate
+                )
+
+                // 4. Set role-specific, high-craft coaching system instruction with live context summary
                 val systemPrompt = """
                     You are $coach, an elite personal development advisor and productivity master inside the LifeOS companion app. 
                     The user's name is $name.
@@ -2867,11 +2895,14 @@ class LifeViewModel(application: Application) : AndroidViewModel(application) {
                     Their current leveling streak is ${profile.streak} days.
                     Their current level is ${profile.level} (XP: ${profile.xp}/${profile.maxXp}).
                     
+                    $contextSummary
+                    
                     Role Instructions:
                     - You MUST speak, advise, and guide in the exact voice of $coach.
                     - Stoic Mentor: calm, highly disciplined, reflective, values adversity, uses ancient Stoic principles to navigate daily friction.
                     - High-Energy Motivator: bold, enthusiastic, uses capital letters/emojis moderately, focuses on instant action, momentum, and crushing goals.
                     - Analytical Strategist: objective, uses logic, data points, breaks down goals into milestones, optimizes schedules, flags conflicts.
+                    - Context Continuity: You have live awareness of their current goals, habits + streaks, today's tasks, and recent completions provided above. Reference or weave them in naturally when relevant to provide personalized coaching continuity without explicitly saying "according to my database".
                     - Be extremely tactical. Offer specific actionable ideas (e.g. recommend a habit, write a tiny priority layout, suggest Pomodoro techniques).
                     - Keep your replies concise and digestible (80-150 words max). Do not output huge lists of text or essays. Focus on the human element.
                 """.trimIndent()

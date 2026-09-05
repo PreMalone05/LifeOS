@@ -82,14 +82,20 @@ fun MilestonePlanScreen(viewModel: LifeViewModel) {
         },
         containerColor = Background
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(28.dp)
+                .padding(innerPadding),
+            contentAlignment = Alignment.TopCenter
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 640.dp)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(28.dp)
+            ) {
             goal?.let { g ->
                 // Hero Vision Banner
                 Box(
@@ -492,6 +498,7 @@ fun MilestonePlanScreen(viewModel: LifeViewModel) {
             Spacer(modifier = Modifier.height(48.dp))
         }
     }
+}
 
     if (showScheduleTasksDialog) {
         com.example.ui.components.SchedulePhaseTasksDialog(
